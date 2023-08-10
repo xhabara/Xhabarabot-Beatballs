@@ -3,6 +3,8 @@ let dots = [];
 let isLooping = false;
 let loopButton;
 let resetButton;
+let autonomousButton;
+let isAutonomousOn = false;
 
 function preload() {
   soundFormats('mp3', 'wav');
@@ -40,6 +42,23 @@ function setup() {
     }
   });
 
+  autonomousButton = createButton("XHABARABOT TAKEOVER");
+  autonomousButton.position(140, height-60);
+  autonomousButton.mouseClicked(() => {
+    isAutonomousOn = !isAutonomousOn;
+    if (isAutonomousOn) {
+      autonomousButton.html("STOP XHABARABOT MODE");
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].setRandomVelocity();
+      }
+    } else {
+      autonomousButton.html("XHABARABOT TAKEOVER");
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].stop();
+      }
+    }
+  });
+
   
   // Create tempo buttons
   let tempoIncButton = createButton("+");
@@ -58,6 +77,9 @@ function setup() {
     }
   });
 }
+ for (let i = 0; i < dots.length; i++) {
+    dots[i].setRandomVelocity();
+  }
 
 
 function draw() {
@@ -77,6 +99,11 @@ function draw() {
     dots[i].display();
   }
 
+ for (let i = 0; i < dots.length; i++) {
+    dots[i].checkForChange();
+    dots[i].update();
+    dots[i].display();
+  }
 
 
 }
@@ -116,79 +143,106 @@ function mouseMoved() {
   }
 }
 
+ for (let i = 0; i < dots.length; i++) {
+    dots[i].checkForChange();
+    dots[i].update();
+    dots[i].display();
+  }
+
 class Dot {
   constructor(x, y, sound) {
     this.pos = createVector(x, y);
-    this.vel = createVector();
-    this.acc = createVector();
+    this.vel = p5.Vector.random2D().mult(random(2, 5));
+    this.acc = createVector(); 
     this.sound = sound;
     this.sound.setVolume(5);
-    this.trail = [];
     this.isDragging = false;
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
     this.isLooping = false;
-    this.isPlaying = false; // add new property
+    this.isPlaying = false;
+    this.shouldChange = true;
+    this.history = []; 
   }
 
   update() {
-    if (this.isDragging) {
+    
+    this.history.push(this.pos.copy());
+
+   
+    if (this.history.length > 100) {
+      this.history.shift();
+    }
+
+    if (isAutonomousOn) {
+      if (this.shouldChange) {
+        this.vel.add(this.acc);
+        this.pos.add(this.vel);
+        this.acc.mult(0);
+        if (this.pos.x < 0 || this.pos.x > width || this.pos.y < 0 || this.pos.y > height) {
+          this.pos = createVector(random(width), random(height));
+          this.vel = p5.Vector.random2D().mult(random(2, 5));
+          this.loop();
+        }
+      }
+    } else if (this.isDragging) {
       this.pos.x = mouseX - this.dragOffsetX;
       this.pos.y = mouseY - this.dragOffsetY;
-    } else {
-      this.vel.add(this.acc);
-      this.pos.add(this.vel);
-      this.acc.mult(0);
     }
-    this.trail.push(createVector(this.pos.x, this.pos.y));
-    if (this.trail.length > 50) {
-      this.trail.splice(0, 1);
-    }
+
+    this.display();
   }
 
   display() {
-    noStroke();
-    fill(155);
-  
-    ellipse(this.pos.x, this.pos.y, 50, 50);
-    fill(400);
-    for (let i = 0; i < this.trail.length; i++) {
-      let p = this.trail[i];
-      ellipse(p.x, p.y, 10, 10);
-    }
+  // Draw trail
+  stroke(155);
+  strokeWeight(4); 
+  noFill();
+  beginShape();
+  for (let i = 0; i < this.history.length; i++) {
+    let pos = this.history[i];
+    curveVertex(pos.x, pos.y); // curveVertex for smoother lines
   }
+  endShape();
 
+  // Draw Dot
+  noStroke();
+  fill(155);
+  ellipse(this.pos.x, this.pos.y, 50, 50);
+}
 
 
   contains(x, y) {
     let d = dist(x, y, this.pos.x, this.pos.y);
-    if (d < 20) {
-      return true;
-    } else {
-      return false;
-    }
+    return d < 20;
   }
 
   play() {
-    if (!this.isPlaying) { // check if sound is not already playing
-      this.isPlaying = true; // set playing state to true
+    if (!this.isPlaying) {
+      this.isPlaying = true;
       this.sound.play();
     }
   }
 
   stop() {
-    this.isPlaying = false; // set playing state to false
+    this.isPlaying = false;
     this.sound.stop();
   }
 
-  loop(isLooping) {
-    this.isLooping = isLooping;
+  loop() {
     if (this.isLooping) {
-      this.sound.loop();
-    } else {
-      this.sound.stop();
+      this.sound.stop(); 
     }
+    this.isLooping = true;
+    this.sound.loop();
+  }
+
+  checkForChange() {
+    
+    this.shouldChange = random(100) < 5;
+  }
+
+  setRandomVelocity() {
+    this.vel = p5.Vector.random2D().mult(random(2, 5));
   }
 }
-
-
