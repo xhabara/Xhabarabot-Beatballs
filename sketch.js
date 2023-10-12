@@ -6,6 +6,10 @@ let resetButton;
 let autonomousButton;
 let isAutonomousOn = false;
 
+let soundRecorder, recording, saveButton;
+let isRecording = false;
+
+
 function preload() {
   soundFormats('mp3', 'wav');
   sound1 = loadSound('RullyShabaraSampleR03.wav', "RullyShabaraSampleR01.wav");
@@ -16,7 +20,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  createCanvas(300, 600);
  dots.push(new Dot(width/4, height/2, sound1));
   dots.push(new Dot(width/3, height/2, sound2));
   dots.push(new Dot(width/2, height/2, sound3));
@@ -24,12 +28,19 @@ function setup() {
   dots.push(new Dot(3*width/4, height/2, sound5));
   
  
+soundRecorder = new p5.SoundRecorder();
+recording = new p5.SoundFile();
+
+  saveButton = createButton("Start Recording");
+saveButton.position(110, height-35);
+  saveButton.style('font-size', '10px');
+saveButton.mouseClicked(toggleRecording);
 
 
   
   // Create loop button
   loopButton = createButton("START");
-  loopButton.position(10, height-60);
+  loopButton.position(10, height-585);
   loopButton.mouseClicked(() => {
     isLooping = !isLooping;
     for (let i = 0; i < dots.length; i++) {
@@ -43,7 +54,8 @@ function setup() {
   });
 
   autonomousButton = createButton("XHABARABOT TAKEOVER");
-  autonomousButton.position(140, height-60);
+autonomousButton.style('font-size', '10px');
+autonomousButton.position(85, height-60);
   autonomousButton.mouseClicked(() => {
     isAutonomousOn = !isAutonomousOn;
     if (isAutonomousOn) {
@@ -62,7 +74,7 @@ function setup() {
   
   // Create tempo buttons
   let tempoIncButton = createButton("+");
-  tempoIncButton.position(70, height-60);
+  tempoIncButton.position(245, height-585);
   tempoIncButton.mouseClicked(() => {
     for (let i = 0; i < dots.length; i++) {
       dots[i].sound.rate(dots[i].sound.rate() + 0.1);
@@ -70,7 +82,7 @@ function setup() {
   });
 
   let tempoDecButton = createButton("-");
-  tempoDecButton.position(100, height-60);
+  tempoDecButton.position(275, height-585);
   tempoDecButton.mouseClicked(() => {
     for (let i = 0; i < dots.length; i++) {
       dots[i].sound.rate(dots[i].sound.rate() - 0.1);
@@ -107,6 +119,23 @@ function draw() {
 
 
 }
+
+
+function toggleRecording() {
+  isRecording = !isRecording;
+  
+  if (isRecording) {
+    saveButton.html("Stop Recording");
+    soundRecorder.setInput();  // default mic input
+    soundRecorder.record(recording);
+  } else {
+    saveButton.html("Download Sounds");
+    soundRecorder.stop();
+    recording.stop();
+    saveSound(recording, 'BeatBalls.wav');
+  }
+}
+
 
 function mouseClicked() {
   for (let i = 0; i < dots.length; i++) {
@@ -155,7 +184,7 @@ class Dot {
     this.vel = p5.Vector.random2D().mult(random(2, 5));
     this.acc = createVector(); 
     this.sound = sound;
-    this.sound.setVolume(5);
+    this.sound.setVolume(0.5);
     this.isDragging = false;
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
@@ -195,8 +224,8 @@ class Dot {
 
   display() {
   // Draw trail
-  stroke(155);
-  strokeWeight(4); 
+  stroke(255);
+  strokeWeight(1); 
   noFill();
   beginShape();
   for (let i = 0; i < this.history.length; i++) {
@@ -207,8 +236,8 @@ class Dot {
 
   // Draw Dot
   noStroke();
-  fill(155);
-  ellipse(this.pos.x, this.pos.y, 50, 50);
+  fill(165);
+  ellipse(this.pos.x, this.pos.y, 20, 20);
 }
 
 
@@ -218,11 +247,12 @@ class Dot {
   }
 
   play() {
-    if (!this.isPlaying) {
-      this.isPlaying = true;
-      this.sound.play();
-    }
+  if (!this.isPlaying) {
+    this.isPlaying = true;
+    soundRecorder.setInput(this.sound);
+    this.sound.play();
   }
+}
 
   stop() {
     this.isPlaying = false;
@@ -246,3 +276,5 @@ class Dot {
     this.vel = p5.Vector.random2D().mult(random(2, 5));
   }
 }
+
+// Created by Rully Shabara 2023
